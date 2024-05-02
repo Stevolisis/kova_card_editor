@@ -9,7 +9,7 @@ import { useEffect } from "react";
 
 export default function Editor(){
     const stageRef = useRef();
-    const action = useRef(ACTIONS.SELECT);
+    const [action,setAction] = useState(ACTIONS.SELECT);
     const [fillColor,setFillColor] = useState("#FFFFFF");
     const [strokeColor,setStrokeColor] = useState("#000000");
     const [rectangles,setRectangles] = useState([]);
@@ -21,14 +21,9 @@ export default function Editor(){
     let isPainting = useRef();
     let currentShapeId = useRef();
     let transformerRef = useRef();
-    const isDraggable = action.current === ACTIONS.SELECT;
-    // console.log(action.current,isPainting.current);
-    console.log("reucard",action.current);
-
-    function setAction(value){
-        console.log(value);
-        action.current = value;
-    }
+    const isDraggable = action === ACTIONS.SELECT;
+    // console.log(action,isPainting.current);
+    console.log("reucard",texts);
 
     function loadFromJSON() {
         const stage = stageRef.current;
@@ -135,7 +130,7 @@ export default function Editor(){
 
     function putText(){
         setAction(ACTIONS.TEXTS);
-        if(action.current === ACTIONS.SELECT) return;
+        if(action === ACTIONS.SELECT) return;
         const id = uuidv4();
         
         setTexts((texts)=>[...texts,{
@@ -150,15 +145,14 @@ export default function Editor(){
     }
 
     function handlePointerDown(){
-        if(action.current === ACTIONS.SELECT) return;
+        if(action === ACTIONS.SELECT) return;
         const stage= stageRef.current;
         const { x, y } = stage.getPointerPosition();
         const id = uuidv4();
         currentShapeId.current = id;
         isPainting.current = true;
-            console.log("b4switch",action)
 
-        switch(action.current){
+        switch(action){
             case ACTIONS.RECTANGLE:
                 setRectangles((rectangles)=>[...rectangles,{
                     id,
@@ -209,11 +203,11 @@ export default function Editor(){
     }
 
     function handlePointerMove(){
-        if(action.current === ACTIONS.SELECT || !isPainting.current) return;
+        if(action === ACTIONS.SELECT || !isPainting.current) return;
         const stage = stageRef.current;
         const { x, y } = stage.getPointerPosition();
 
-        switch(action.current){
+        switch(action){
             case ACTIONS.RECTANGLE:
                 setRectangles((rectangles)=> rectangles.map(rectangle=>{
                     if(rectangle.id === currentShapeId.current){
@@ -280,7 +274,7 @@ export default function Editor(){
     }
 
     function handleOnClick(e){
-        if(action.current !== ACTIONS.SELECT) return;
+        if(action !== ACTIONS.SELECT) return;
         const target = e.currentTarget;
         transformerRef.current.nodes([target]);
     }
@@ -288,7 +282,7 @@ export default function Editor(){
 
     return(
         <div className="flex">
-            <Nav download={download} putText={putText} action={action.current} setAction={setAction} importImage={importImage}/>
+            <Nav download={download} putText={putText} action={action} setAction={setAction} importImage={importImage}/>
             <div className=" bg-gray-100 w-full flex justify-center items-center">
                 <Stage 
                     ref={stageRef}

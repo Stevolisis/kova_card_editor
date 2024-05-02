@@ -2,13 +2,12 @@ import { IoIosCheckboxOutline, IoIosHappy, IoIosText, IoMdAdd, IoMdArrowUp, IoMd
 import { ACTIONS } from "../utility/actions";
 
 export default function Nav({action,setAction,download,importImage,putText}){
-    console.log("999",action);
     
     return(
         <nav className="bg-[#961233] h-[85vh] w-[29vw] flex justify-center overflow-y-auto">
             <div className="">
                 <button onClick={()=>setAction(ACTIONS.SELECT)} 
-                className={`justify-center text-[#961233] m-5 flex items-center bg-[#FFBABF] w-[130px] h-[60px] p-5 rounded-md ${action == ACTIONS.SELECT && "shadow-lg"} shadow-red-400`}>
+                className={`justify-center text-[#961233] m-5 flex items-center bg-[#FFBABF] w-[130px] h-[60px] p-5 rounded-md ${action === ACTIONS.SELECT && "shadow-lg"} shadow-red-400`}>
                     <IoMdAdd className=""/> 
                     <p className="text-sm ">SELECT</p>
                 </button>
