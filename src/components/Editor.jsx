@@ -5,13 +5,13 @@ import Nav from "./Nav";
 import { v4 as uuidv4 } from "uuid";
 import { reucard } from "../../card";
 import { useEffect } from "react";
-
+import { jsPDF } from "jspdf";
 
 export default function Editor(){
     const stageRef = useRef();
     const [action,setAction] = useState(ACTIONS.SELECT);
-    const [fillColor,setFillColor] = useState("#FFFFFF");
-    const [strokeColor,setStrokeColor] = useState("#000000");
+    const [fillColor] = useState("#FFFFFF");
+    const [strokeColor] = useState("#000000");
     const [rectangles,setRectangles] = useState([]);
     const [circles,setCircles] = useState([]);
     const [arrows,setArrows] = useState([]);
@@ -21,6 +21,7 @@ export default function Editor(){
     let isPainting = useRef();
     let currentShapeId = useRef();
     let transformerRef = useRef();
+    let actionText = useRef();
     const isDraggable = action === ACTIONS.SELECT;
     // console.log(action,isPainting.current);
     console.log("reucard",texts);
@@ -124,24 +125,51 @@ export default function Editor(){
         // link2.click();
         document.body.removeChild(link);
         document.body.removeChild(link2);
+
+        var pdf = new jsPDF('l', 'px', [stageRef.current.width(), stageRef.current.height()]);
+        pdf.setTextColor('#000000');
+        // first add texts
+        stageRef.current.find('Text').forEach((text) => {
+          const size = text.fontSize() / 0.75; // convert pixels to points
+          pdf.setFontSize(size);
+          pdf.text(text.text(), text.x(), text.y(), {
+            baseline: 'top',
+            angle: -text.getAbsoluteRotation(),
+          });
+        });
+
+        // then put image on top of texts (so texts are not visible)
+        pdf.addImage(
+          stageRef.current.toDataURL({ pixelRatio: 2 }),
+          0,
+          0,
+          stageRef.current.width(),
+          stageRef.current.height()
+        );
+
+        pdf.save('canvas.pdf');
         console.log(jsonLink,stageRef.current);
     }
 
 
     function putText(){
-        setAction(ACTIONS.TEXTS);
-        if(action === ACTIONS.SELECT) return;
-        const id = uuidv4();
-        
-        setTexts((texts)=>[...texts,{
-            id,
-            x:0,
-            y:0,
-            text: "Hello World1",
-            fontSize: 30,
-            fontFamily: "Calibri",
-            fill: "green"
-        }]);
+        setAction(ACTIONS.TEXTS)
+        actionText.current = ACTIONS.TEXTS;
+        if(actionText.current === ACTIONS.TEXTS){
+            const id = uuidv4();
+            
+            setTexts((texts)=>[...texts,{
+                id,
+                x:0,
+                y:0,
+                text: "Hello World1",
+                fontSize: 30,
+                fontFamily: "Calibri",
+                fill: "green"
+            }]);
+        } 
+        return;
+
     }
 
     function handlePointerDown(){
@@ -303,14 +331,14 @@ export default function Editor(){
                             onClick={()=>transformerRef.current.nodes([])}
                         />
                         {
-                            rectangles.map((rectangle)=>(
+                            rectangles.map((rectangle,i)=>(
                                 <Rect
-                                    key={rectangle.id}
+                                    key={i}
                                     x={rectangle.x}
                                     y={rectangle.y}
                                     stroke={strokeColor}
-                                    strokeWidth={2}
-                                    fill={rectangle.fillColor}
+                                    strokeWidth={5}
+                                    fill='dodgerblue'
                                     width={rectangle.width}
                                     height={rectangle.height}
                                     draggable={isDraggable}
@@ -320,9 +348,9 @@ export default function Editor(){
                         }
                         
                         {
-                            circles.map((circle)=>(
+                            circles.map((circle,i)=>(
                                 <Circle
-                                    key={circle.id}
+                                    key={i}
                                     x={circle.x}
                                     y={circle.y}
                                     radius={circle.radius}
@@ -336,9 +364,9 @@ export default function Editor(){
                         }
 
                         {
-                            arrows.map((arrow)=>(
+                            arrows.map((arrow,i)=>(
                                 <Arrow
-                                    key={arrow.id}
+                                    key={i}
                                     points={arrow.points}
                                     stroke={strokeColor}
                                     strokeWidth={2}
@@ -350,9 +378,9 @@ export default function Editor(){
                         }
 
                         {
-                            scribbles.map((scribble)=>(
+                            scribbles.map((scribble,i)=>(
                                 <Line
-                                    key={scribble.id}
+                                    key={i}
                                     points={scribble.points}
                                     linecap="round"
                                     linejoin="round"
@@ -366,9 +394,9 @@ export default function Editor(){
                         }
 
                         {
-                            images.map((image)=>(
+                            images.map((image,i)=>(
                                 <Image
-                                    key={image.id}
+                                    key={i}
                                     x={image.x}
                                     y={image.y}
                                     image={image.image}
@@ -381,9 +409,9 @@ export default function Editor(){
                         }
 
                         {
-                            texts.map((text)=>(
+                            texts.map((text,i)=>(
                                 <Text
-                                    key={text.id}
+                                    key={i}
                                     x= {text.x}
                                     y= {text.y}
                                     text= {text.text}

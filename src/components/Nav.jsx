@@ -2,7 +2,7 @@ import { IoIosCheckboxOutline, IoIosHappy, IoIosText, IoMdAdd, IoMdArrowUp, IoMd
 import { ACTIONS } from "../utility/actions";
 
 export default function Nav({action,setAction,download,importImage,putText}){
-    
+
     return(
         <nav className="bg-[#961233] h-[85vh] w-[29vw] flex justify-center overflow-y-auto">
             <div className="">
