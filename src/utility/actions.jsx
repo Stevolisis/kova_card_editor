@@ -6,5 +6,5 @@ export const ACTIONS = {
     SCRIBBLE:"SCRIBBLE",
     ARROW:"ARROW",
     IMAGE:"IMAGE",
-    TEXTS:"TEXTS",
+    TEXT:"TEXTS",
 }

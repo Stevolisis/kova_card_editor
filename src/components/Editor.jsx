@@ -1,110 +1,55 @@
-import { useRef, useState } from "react"
+import { useRef, useState, useCallback } from "react"
 import { Arrow, Circle, Image, Layer, Line, Rect, Stage, Text, Transformer } from "react-konva";
 import { ACTIONS } from "../utility/actions";
 import Nav from "./Nav";
+import Nav2 from "./Nav2";
 import { v4 as uuidv4 } from "uuid";
-import { reucard } from "../../card";
-import { useEffect } from "react";
 import { jsPDF } from "jspdf";
 
 export default function Editor(){
     const stageRef = useRef();
+    const [shapes, setShapes] = useState({
+        rectangles: [],
+        circles: [],
+        arrows: [],
+        scribbles: [],
+        texts: [],
+        images: [],
+    });
     const [action,setAction] = useState(ACTIONS.SELECT);
+    const [currId,setCurrId] = useState(null);
     const [fillColor] = useState("#FFFFFF");
     const [strokeColor] = useState("#000000");
-    const [rectangles,setRectangles] = useState([]);
-    const [circles,setCircles] = useState([]);
-    const [arrows,setArrows] = useState([]);
-    const [scribbles,setScribbles] = useState([]);
-    const [texts,setTexts] = useState([]);
-    const [images,setImages] = useState([]);
     let isPainting = useRef();
     let currentShapeId = useRef();
     let transformerRef = useRef();
-    let actionText = useRef();
     const isDraggable = action === ACTIONS.SELECT;
-    // console.log(action,isPainting.current);
-    console.log("reucard",texts);
 
-    function loadFromJSON() {
-        const stage = stageRef.current;
-        const newRectangles = [];
-        const newCircles = [];
-        const newArrows = [];
-        const newScribbles = [];
-
-        reucard && reucard.children.forEach(layer => {
-            layer.children.forEach(shape => {
-                switch (shape.className) {
-                    case "Rect":
-                        newRectangles.push({
-                            id: shape.attrs.id,
-                            x: shape.attrs.x,
-                            y: shape.attrs.y,
-                            width: shape.attrs.width,
-                            height: shape.attrs.height,
-                            fillColor: shape.attrs.fill
-                        });
-                        break;
-                    case "Circle":
-                        newCircles.push({
-                            id: shape.attrs.id,
-                            x: shape.attrs.x,
-                            y: shape.attrs.y,
-                            radius: shape.attrs.radius,
-                            fillColor: shape.attrs.fill
-                        });
-                        break;
-                    case "Arrow":
-                        newArrows.push({
-                            id: shape.attrs.id,
-                            points: shape.attrs.points,
-                            fillColor: shape.attrs.fill
-                        });
-                        break;
-                    case "Line":
-                        newScribbles.push({
-                            id: shape.attrs.id,
-                            points: shape.attrs.points,
-                            fillColor: shape.attrs.fill
-                        });
-                        break;
-                    default:
-                        break;
-                }
-            });
-        });
-
-        setRectangles(newRectangles);
-        setCircles(newCircles);
-        setArrows(newArrows);
-        setScribbles(newScribbles);
-    }
     
-    useEffect(()=>{
-        loadFromJSON();
-    },[]);
-
     function importImage(e) {
         if (e.target.files?.[0]) {
             const imageUrl = URL.createObjectURL(e.target.files?.[0]);
-            console.log("reucardtyt",imageUrl);
+            const id = uuidv4().replace(/-/g,'');
             let image = new window.Image();
             image.src = imageUrl;
             image.alt = "{{image_alt}}";
             image.onload = () => {
-                setImages(images => [
-                    ...images,
-                    {
-                        id: uuidv4(),
-                        image: image,
-                        x: 0, // Set initial x position
-                        y: 0, // Set initial y position
-                        width: 250,
-                        height: 250,
-                        alt: image.alt
-                    }
-                ]);
+                setShapes((prevShapes) => ({
+                    ...prevShapes,
+                    images: [
+                      ...prevShapes.images,
+                        {
+                            id,
+                            x: 0,
+                            y: 0,
+                            width: 250,
+                            height: 250,
+                            image: image,
+                            alt: image.alt,
+                        }
+                    ],
+                }));
+
             };
             image.src = imageUrl;
         }
@@ -152,165 +97,198 @@ export default function Editor(){
     }
 
 
-    function putText(){
-        setAction(ACTIONS.TEXTS)
-        actionText.current = ACTIONS.TEXTS;
-        if(actionText.current === ACTIONS.TEXTS){
-            const id = uuidv4();
-            
-            setTexts((texts)=>[...texts,{
-                id,
-                x:0,
-                y:0,
-                text: "Hello World1",
-                fontSize: 30,
-                fontFamily: "Calibri",
-                fill: "green"
-            }]);
-        } 
-        return;
-
-    }
-
-    function handlePointerDown(){
+    const handlePointerDown = useCallback(()=>{
         if(action === ACTIONS.SELECT) return;
         const stage= stageRef.current;
         const { x, y } = stage.getPointerPosition();
-        const id = uuidv4();
+        const id = uuidv4().replace(/-/g,'');
+
         currentShapeId.current = id;
         isPainting.current = true;
 
         switch(action){
             case ACTIONS.RECTANGLE:
-                setRectangles((rectangles)=>[...rectangles,{
-                    id,
-                    x,
-                    y,
-                    height:20,
-                    width:20,
-                    fillColor
-                }]);
+                setShapes((prevShapes) => ({
+                    ...prevShapes,
+                    rectangles: [
+                      ...prevShapes.rectangles,
+                        {
+                            id,
+                            x: x,
+                            y: y,
+                            stroke: strokeColor,
+                            strokeWidth: 5,
+                            fill: fillColor,
+                            width: 20,
+                            height: 20,
+                        }
+                    ],
+                }));
             break;
             case ACTIONS.CIRCLE:
-                setCircles((circles)=>[...circles,{
-                    id,
-                    x,
-                    y,
-                    radius:20,
-                    fillColor
-                }]);
+                setShapes((prevShapes) => ({
+                    ...prevShapes,
+                    circles: [
+                      ...prevShapes.circles,
+                        {
+                            id,
+                            x: x,
+                            y: y,
+                            radius: 20,
+                            stroke: strokeColor,
+                            strokeWidth: 2,
+                            fill: fillColor,
+                        }
+                    ],
+                }));
             break;
             case ACTIONS.SCRIBBLE:
-                setScribbles((scribbles)=>[...scribbles,{
-                    id,
-                    points:[x,y],
-                    fillColor
-                }]);
+                setShapes((prevShapes) => ({
+                    ...prevShapes,
+                    scribbles: [
+                      ...prevShapes.scribbles,
+                        {
+                            id,
+                            points: [x,y],
+                            linecap: "round",
+                            linejoin: "round",
+                            stroke: strokeColor,
+                            strokeWidth: 2,
+                            fill: fillColor,
+                        }
+                    ],
+                }));
             break;
             case ACTIONS.ARROW:
-                setArrows((arrows)=>[...arrows,{
-                    id,
-                    points:[x,y,x+20,y+20],
-                    fillColor
-                }]);
+                setShapes((prevShapes) => ({
+                    ...prevShapes,
+                    arrows: [
+                      ...prevShapes.arrows,
+                        {
+                            id,
+                            points:[x,y,x+20,y+20],
+                            stroke: strokeColor,
+                            strokeWidth: 2,
+                            fill: fillColor,
+                        }
+                    ],
+                }));
             break;
-            // case ACTIONS.TEXTS:
-            //     console.log("opo");
-            //     setTexts((texts)=>[...texts,{
-            //         id,
-            //         x,
-            //         y,
-            //         text: "Hello World1",
-            //         fontSize: 30,
-            //         fontFamily: "Calibri",
-            //         fill: "green"
-            //     }]);
-            //     console.log("oport");
-            // break;
+            case ACTIONS.TEXT:
+                setShapes((prevShapes) => ({
+                    ...prevShapes,
+                    texts: [
+                      ...prevShapes.texts,
+                        {
+                            id,
+                            x:x,
+                            y:y,
+                            text: "Hello World",
+                            fontSize: 30,
+                            fontFamily: "Calibri",
+                            fill: "green"
+                        }
+                    ],
+                }));
+            break;
         }
-    }
+    },[action, fillColor, strokeColor])
 
-    function handlePointerMove(){
+    const handlePointerMove= useCallback(()=>{
         if(action === ACTIONS.SELECT || !isPainting.current) return;
         const stage = stageRef.current;
         const { x, y } = stage.getPointerPosition();
 
         switch(action){
             case ACTIONS.RECTANGLE:
-                setRectangles((rectangles)=> rectangles.map(rectangle=>{
-                    if(rectangle.id === currentShapeId.current){
-                        return {
-                            ...rectangle,
-                            width: x - rectangle.x,
-                            height: y - rectangle.y 
-                        }
-                    }
-                    return rectangle;
-                }));
+
+                setShapes((prevShapes) => {
+                    const rectangles = prevShapes.rectangles.map((rectangle) => {
+                      if (rectangle.id === currentShapeId.current) {
+                        rectangle.width= x - rectangle.x;
+                        rectangle.height= y - rectangle.y;
+                      }
+
+                      return rectangle;
+                    });
+            
+                    return { ...prevShapes, rectangles };
+                });
             break;
-            // case ACTIONS.TEXTS:
-            //     setTexts((texts)=> texts.map(text=>{
-            //         if(text.id === currentShapeId.current){
-            //             return {
-            //                 ...text,
-            //                 width: x - text.x,
-            //                 height: y - text.y 
-            //             }
-            //         }
-            //         return text;
-            //     }));
-            // break;
+            case ACTIONS.TEXT:
+
+                setShapes((prevShapes) => {
+                    const texts = prevShapes.texts.map((text) => {
+                      if (text.id === currentShapeId.current) {
+                        text.x= x;
+                        text.y= y;
+                      }
+
+                      return text;
+                    });
+            
+                    return { ...prevShapes, texts };
+                });
+            break;
             case ACTIONS.CIRCLE:
-                setCircles((circles)=> circles.map(circle=>{
-                    if(circle.id === currentShapeId.current){
+                setShapes((prevShapes) => {
+                    const circles = prevShapes.circles.map((circle) => {
+                      if (circle.id === currentShapeId.current) {
                         return {
                             ...circle,
                             radius:((y - circle.y) ** 2 + (x - circle.x) ** 2 ) ** 0.5,
                         }
-                    }
-                    return circle;
-                }));
+                      }
+                      return circle;
+                    });
+            
+                    return { ...prevShapes, circles };
+                });
             break;
             case ACTIONS.SCRIBBLE:
-                setScribbles((scribbles)=> scribbles.map(scribble=>{
-                    if(scribble.id === currentShapeId.current){
-                        return {
-                            ...scribble,
-                            points:[...scribble.points,x,y],
-                        }
-                    }
-                    return scribble;
-                }));
+                setShapes((prevShapes) => {
+                    const scribbles = prevShapes.scribbles.map((scribble) => {
+                      if (scribble.id === currentShapeId.current) {
+                        scribble.points= [...scribble.points,x,y];
+                      }
+                      return scribble;
+                    });
+            
+                    return { ...prevShapes, scribbles };
+                });
             break;
             case ACTIONS.ARROW:
-                setArrows((arrows)=> arrows.map(arrow=>{
-                    if(arrow.id === currentShapeId.current){
-                        return {
-                            ...arrow,
-                            points:[arrow.points[0],arrow.points[1],x,y],
-                        }
-                    }
-                    return arrow;
-                }));
+                setShapes((prevShapes) => {
+                    const arrows = prevShapes.arrows.map((arrow) => {
+                      if (arrow.id === currentShapeId.current) {
+                        arrow.points= [arrow.points[0],arrow.points[1],x,y];
+                      }
+                      return arrow;
+                    });
+            
+                    return { ...prevShapes, arrows };
+                });
             break;
         }
-    }
+    },[action])
 
     
-    function handlePointerUp(){
+    const handlePointerUp = useCallback(() => {
         isPainting.current = false;
-    }
+    }, []);
 
     function handleOnClick(e){
         if(action !== ACTIONS.SELECT) return;
         const target = e.currentTarget;
+        setCurrId(target.attrs.id);
         transformerRef.current.nodes([target]);
     }
+        console.log('rrr',currentShapeId)
 
 
     return(
         <div className="flex">
-            <Nav download={download} putText={putText} action={action} setAction={setAction} importImage={importImage}/>
+            <Nav download={download} action={action} setAction={setAction} importImage={importImage}/>
             <div className=" bg-gray-100 w-full flex justify-center items-center">
                 <Stage 
                     ref={stageRef}
@@ -330,17 +308,12 @@ export default function Editor(){
                             id="bg"
                             onClick={()=>transformerRef.current.nodes([])}
                         />
+
                         {
-                            rectangles.map((rectangle,i)=>(
+                            shapes.rectangles.map((rectangle)=>(
                                 <Rect
-                                    key={i}
-                                    x={rectangle.x}
-                                    y={rectangle.y}
-                                    stroke={strokeColor}
-                                    strokeWidth={5}
-                                    fill='dodgerblue'
-                                    width={rectangle.width}
-                                    height={rectangle.height}
+                                    key={ rectangle.id }
+                                    { ... rectangle }
                                     draggable={isDraggable}
                                     onClick={(e)=>handleOnClick(e)}
                                 />
@@ -348,15 +321,10 @@ export default function Editor(){
                         }
                         
                         {
-                            circles.map((circle,i)=>(
+                            shapes.circles.map((circle)=>(
                                 <Circle
-                                    key={i}
-                                    x={circle.x}
-                                    y={circle.y}
-                                    radius={circle.radius}
-                                    stroke={strokeColor}
-                                    strokeWidth={2}
-                                    fill={circle.fillColor}
+                                    key={circle.id}
+                                    { ...circle }
                                     draggable={isDraggable}
                                     onClick={(e)=>handleOnClick(e)}
                                 />
@@ -364,13 +332,10 @@ export default function Editor(){
                         }
 
                         {
-                            arrows.map((arrow,i)=>(
+                            shapes.arrows.map((arrow)=>(
                                 <Arrow
-                                    key={i}
-                                    points={arrow.points}
-                                    stroke={strokeColor}
-                                    strokeWidth={2}
-                                    fill={arrow.fillColor}
+                                    key={arrow.id}
+                                    { ...arrow }
                                     draggable={isDraggable}
                                     onClick={(e)=>handleOnClick(e)}
                                 />
@@ -378,15 +343,10 @@ export default function Editor(){
                         }
 
                         {
-                            scribbles.map((scribble,i)=>(
+                            shapes.scribbles.map((scribble)=>(
                                 <Line
-                                    key={i}
-                                    points={scribble.points}
-                                    linecap="round"
-                                    linejoin="round"
-                                    stroke={strokeColor}
-                                    strokeWidth={2}
-                                    fill={scribble.fillColor}
+                                    key={scribble.id}
+                                    { ...scribble }
                                     draggable={isDraggable}
                                     onClick={(e)=>handleOnClick(e)}
                                 />
@@ -394,22 +354,18 @@ export default function Editor(){
                         }
 
                         {
-                            images.map((image,i)=>(
+                            shapes.images.map((image)=>(
                                 <Image
-                                    key={i}
-                                    x={image.x}
-                                    y={image.y}
-                                    image={image.image}
+                                    key={image.id}
+                                    { ...image }
                                     draggable={isDraggable}
-                                    width={image.width}
-                                    height={image.height}
                                     onClick={(e)=>handleOnClick(e)}
                                 />
                             ))
                         }
 
                         {
-                            texts.map((text,i)=>(
+                            shapes.texts.map((text,i)=>(
                                 <Text
                                     key={i}
                                     x= {text.x}
@@ -420,6 +376,7 @@ export default function Editor(){
                                     fill= {text.fill}
                                     draggable={isDraggable}
                                     onClick={(e)=>handleOnClick(e)}
+                                    align="center"
                                 />
                             ))
                         }
@@ -429,6 +386,7 @@ export default function Editor(){
                     </Layer>
                 </Stage>
             </div>
+            <Nav2 shapes={shapes} id={currId} setShapes={setShapes} />
         </div>
 
     )
